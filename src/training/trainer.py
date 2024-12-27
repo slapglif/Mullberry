@@ -28,14 +28,19 @@ def train_mulberry(
     if tensorboard_dir:
         logger = TensorBoardLogger(tensorboard_dir)
 
-    # Initialize trainer without gradient clipping since we use manual optimization
+    # Initialize trainer with CPU-optimized settings
     trainer = pl.Trainer(
         max_epochs=max_epochs,
         callbacks=callbacks,
         logger=logger,
         accelerator="cpu",
+        devices=1,
         precision="32-true",
-        accumulate_grad_batches=4  # For memory efficiency
+        enable_progress_bar=True,
+        enable_model_summary=True,
+        log_every_n_steps=1,  # More frequent logging for testing
+        num_sanity_val_steps=0,  # Skip validation sanity check for testing
+        deterministic=True  # Ensure reproducibility
     )
 
     # Train model

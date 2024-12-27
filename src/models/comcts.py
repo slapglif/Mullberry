@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import einops
 import math
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional, Union, Any
 
 class CoMCTS(nn.Module):
     def __init__(
@@ -18,7 +18,11 @@ class CoMCTS(nn.Module):
         self.exploration_constant = exploration_constant
         self.ucb_threshold = ucb_threshold
 
-    def expand_nodes(self, current_node: Dict, question: str) -> List[Dict]:
+    def expand_nodes(
+        self,
+        current_node: Dict[str, Any],
+        question: str
+    ) -> List[Dict[str, Any]]:
         """Joint expansion using collective knowledge from multiple models"""
         candidate_paths = []
 
@@ -44,16 +48,16 @@ class CoMCTS(nn.Module):
 
     def simulate_and_evaluate(
         self, 
-        candidates: List[Dict],
+        candidates: List[Dict[str, Any]],
         question: str
-    ) -> List[Dict]:
+    ) -> List[Dict[str, Any]]:
         """Joint simulation and error positioning"""
         valid_candidates = []
 
         # Parallel evaluation using ThreadPoolExecutor
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor() as executor:
-            def evaluate_candidate(candidate):
+            def evaluate_candidate(candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 scores = []
                 futures = [
                     executor.submit(
@@ -78,7 +82,7 @@ class CoMCTS(nn.Module):
 
         return valid_candidates
 
-    def backpropagate(self, node: Dict, value: float):
+    def backpropagate(self, node: Dict[str, Any], value: float) -> None:
         """Bottom-up update of statistics"""
         current = node
         while current:
@@ -91,7 +95,10 @@ class CoMCTS(nn.Module):
                 ) / (current["visits"] + len(current["children"]))
             current = current.get("parent", None)
 
-    def select_node(self, candidates: List[Dict]) -> Dict:
+    def select_node(
+        self,
+        candidates: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
         """Select node with highest UCB value"""
         if not candidates:
             return None
@@ -115,8 +122,8 @@ class CoMCTS(nn.Module):
     def search(
         self,
         question: str,
-        initial_node: Dict
-    ) -> Tuple[List[str], Dict]:
+        initial_node: Dict[str, Any]
+    ) -> Tuple[Optional[List[str]], Dict[str, Any]]:
         """Main CoMCTS search loop with CPU optimization"""
         root = initial_node
         best_path = None
@@ -155,7 +162,7 @@ class CoMCTS(nn.Module):
 
     def get_reflective_path(
         self,
-        tree: Dict,
+        tree: Dict[str, Any],
         positive_path: List[str]
     ) -> List[str]:
         """Find reflective reasoning path with error correction"""
